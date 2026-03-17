@@ -47,9 +47,7 @@ The current implementation extracts identifiers that have clearly defined format
 - Google Ads IDs (AW)  
 - Facebook Pixel IDs  
 - reCAPTCHA site keys  
-- Telegram URLs (`t.me`, `telegram.me`)  
-- Korean business registration numbers  
-- Korean 010 mobile numbers  
+- Telegram URLs (`t.me`, `telegram.me`)   
 
 Only identifiers with **stable formats** are extracted to avoid excessive false positives.
 
