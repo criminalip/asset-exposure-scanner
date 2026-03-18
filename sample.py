@@ -6,7 +6,7 @@ from parse_regex import extract_all, as_dict
 
 
 def main():
-    # 다양한 케이스를 섞은 멀티라인 샘플(개행 포함)
+    # Multiline sample containing various identifier patterns
     sample_text = r"""
 [HTTP Headers]
 Server: nginx/1.24.0
