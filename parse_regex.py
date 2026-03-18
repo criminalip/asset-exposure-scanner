@@ -103,8 +103,6 @@ class ExtractResult:
     recaptcha_site_keys: List[str]
     telegram_usernames: List[str]            # from URL
     telegram_urls: List[str]
-    kr_business_registration_numbers: List[str]
-    kr_mobile_phones_010: List[str]           # extracted (normalized optional)
 
 
 def _unique_sorted(items: Iterable[str]) -> List[str]:
@@ -173,7 +171,7 @@ def as_dict(res: ExtractResult) -> Dict[str, List[str]]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--file", help="Input file path (reads from stdin if omitted)")
-    ap.add_argument("--pretty", action="store_true", help="JSON pretty print")
+    ap.add_argument("--pretty", action="store_true", help="pretty print JSON")
     args = ap.parse_args()
 
     if args.file:
