@@ -3,19 +3,19 @@
 """
 CIP Privacy Check (banner regex scan)
 
-요구사항(대표님 요청대로):
-- parse_regex.py / sample.py 는 그대로 둠
-- cip_privacy_check.py 만 수정
-- IP를 인자로 받아 Criminal IP /v1/asset/ip/report 호출
-- "모든 포트"에 대해 (있는 경우에만) banner + ssl_info_raw 텍스트를 모아 정규식 파싱
-- 결과가 "있는 것만" 최종 JSON에 기록 (매칭 없는 포트는 최종 파일에서 제외)
-- criminalip_api_key.json 그대로 사용
+Requirements:
+- Leave parse_regex.py / sample.py unchanged
+- Modify only cip_privacy_check.py
+- Accept an IP as an argument and call Criminal IP /v1/asset/ip/report
+- For "all ports", collect banner + ssl_info_raw text (when available) and parse it with regex
+- Record only entries with actual results in the final JSON (ports with no matches are excluded from the final output)
+- Continue using criminalip_api_key.json as-is
 
-추가:
-- --rawfile 옵션: API 호출 없이 로컬 raw json으로 테스트 가능
-- --phone-mode: parse_regex.py의 phone_mode 그대로 전달
+Additional features:
+- --rawfile option: allows testing with a local raw JSON file without calling the API
+- --phone-mode: passes parse_regex.py phone_mode through as-is
 
-실행:
+Usage:
   python cip_privacy_check.py --ip 1.1.1.1
   python cip_privacy_check.py --ip 1.1.1.1 --out out_privacy/1.1.1.1_privacy.json
   python cip_privacy_check.py --rawfile 1.1.1.1.raw.json --out out_privacy/1.1.1.1_privacy.json
@@ -27,12 +27,12 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timezoneㅋ
 from typing import Any, Dict, List, Optional
 
 import requests
 
-# 기존 parse_regex.py 인터페이스 그대로 사용
+# Keep using the existing parse_regex.py interface as-is
 import parse_regex
 
 
@@ -41,10 +41,10 @@ API_URL = "https://api.criminalip.io/v1/asset/ip/report"
 
 def _parse_with_parse_regex(text: str, phone_mode: str) -> Dict[str, Any]:
     """
-    parse_regex.py 버전에 따라 인터페이스가 다를 수 있습니다.
-    - 확장 버전: extract_all(text, phone_mode) + as_dict()
-    - 간단 버전: parse_text(text)
-    둘 다 지원합니다.
+    The interface may vary depending on the parse_regex.py version.
+    - Extended version: extract_all(text, phone_mode) + as_dict()
+    - Simple version: parse_text(text)
+    Both are supported.
     """
     if hasattr(parse_regex, "extract_all") and hasattr(parse_regex, "as_dict"):
         parsed = parse_regex.extract_all(text, phone_mode=phone_mode)
@@ -111,8 +111,8 @@ def _safe_str(v: Any) -> str:
 
 def _drop_empty_lists(d: Dict[str, Any]) -> Dict[str, Any]:
     """
-    parse_regex.as_dict()는 모든 키를 포함하며 값이 []일 수 있음.
-    "있는 것만" 남기기 위해 빈 리스트는 제거.
+    parse_regex.as_dict() includes all keys, and some values may be [].
+    To keep only fields with actual content, empty lists are removed.
     """
     out: Dict[str, Any] = {}
     for k, v in d.items():
@@ -168,9 +168,10 @@ def _to_epoch_seconds(v: Any) -> float:
 
 
 def dedupe_latest_ports(ports: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Criminal IP 포트 목록에는 과거 스캔 이력이 함께 섞여 들어오는 경우가 있습니다.
-    동일 포트(및 프로토콜) 항목이 여러 개라면, confirmed_time 기준으로 가장 최신 1개만 남깁니다.
-    confirmed_time 파싱이 실패하면, 리스트에서 더 뒤에 있는 항목을 '최신'으로 간주합니다.
+    """Criminal IP port lists may include historical scan records together.
+    If there are multiple entries for the same port (and protocol),
+    keep only the most recent one based on confirmed_time.
+    If confirmed_time parsing fails, the later item in the list is treated as the latest.
     """
     best: Dict[tuple, tuple] = {}  # key -> (epoch, idx, port_dict)
 
@@ -196,7 +197,7 @@ def analyze_report(report: Dict[str, Any], phone_mode: str) -> Dict[str, Any]:
     ports_all = extract_ports(report)
     ports_total = len(ports_all)
 
-    # 같은 포트(과거 이력 포함)는 가장 최신 1개만 검사
+    # For duplicate ports (including historical records), scan only the latest one
     ports = dedupe_latest_ports(ports_all)
 
     matched_ports: List[Dict[str, Any]] = []
@@ -205,7 +206,7 @@ def analyze_report(report: Dict[str, Any], phone_mode: str) -> Dict[str, Any]:
         banner = _safe_str(p.get("banner")).strip()
         ssl_raw = _safe_str(p.get("ssl_info_raw")).strip()
 
-        # "있는 텍스트만" 합침
+        # Combine only available text
         if not banner and not ssl_raw:
             continue
 
@@ -213,15 +214,15 @@ def analyze_report(report: Dict[str, Any], phone_mode: str) -> Dict[str, Any]:
         if ssl_raw:
             combined = (combined + "\n\n" + ssl_raw).strip() if combined else ssl_raw
 
-        # 정규식 추출
+        # Regex extraction
         findings_raw = _parse_with_parse_regex(combined, phone_mode=phone_mode)
         findings = _drop_empty_lists(findings_raw)
 
-        # "있는 것만": findings가 비어있으면 이 포트는 최종 결과에서 제외
+        # Keep only actual findings: if empty, exclude this port from final results
         if not findings:
             continue
 
-        # 포트 레코드도 "있는 필드만" 담기
+        # Include only available fields in the port record
         entry: Dict[str, Any] = {
             "open_port_no": p.get("open_port_no"),
             "protocol": p.get("protocol"),
@@ -230,7 +231,7 @@ def analyze_report(report: Dict[str, Any], phone_mode: str) -> Dict[str, Any]:
             "matches": findings,
         }
 
-        # optional fields (존재할 때만)
+        # optional fields (only when present)
         for key in ("app_name", "app_version", "confirmed_time"):
             v = p.get(key)
             if v not in (None, "", [], {}):
@@ -245,7 +246,7 @@ def analyze_report(report: Dict[str, Any], phone_mode: str) -> Dict[str, Any]:
         "ports_scanned": len(ports),  # unique ports after de-dup
 
         "ports_matched": len(matched_ports),
-        "matched_ports": matched_ports,  # 이미 match 있는 포트만 포함
+        "matched_ports": matched_ports,  # includes only ports with matches
     }
 
     # best-effort IP
