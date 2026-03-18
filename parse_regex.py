@@ -172,6 +172,12 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--file", help="Input file path (reads from stdin if omitted)")
     ap.add_argument("--pretty", action="store_true", help="pretty print JSON")
+    ap.add_argument(
+        "--phone-mode",
+        choices=["off", "strict", "loose", "context_required"],
+        default="off",
+        help="Deprecated compatibility option; currently unused",
+    )
     args = ap.parse_args()
 
     if args.file:
