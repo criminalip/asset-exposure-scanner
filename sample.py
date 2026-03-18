@@ -52,9 +52,9 @@ Support: helpdesk@corp.co.kr
 </html>
 """
 
-        res = extract_all(sample_text)
-        payload = as_dict(res)
-        print(json.dumps(payload, ensure_ascii=False, indent=2))
+    res = extract_all(sample_text)
+    payload = as_dict(res)
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
