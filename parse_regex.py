@@ -1,28 +1,29 @@
 # parse_regex.py
 # -*- coding: utf-8 -*-
 """
-긴 본문(개행 포함) 문자열에서 "정규식 기반"으로 식별자들을 추출합니다.
+Extracts identifiers from a long text string (including line breaks) using regex-based matching.
 
-추출 대상(정규식 중심):
+Extraction targets (primarily regex-based):
 - emails
-- Google IDs: GA4 (G-), UA, GTM, Google Ads (AW-), google-site-verification(meta tag)
-- Facebook/Meta Pixel ID (fbq init 컨텍스트)
-- reCAPTCHA site key (recaptcha 컨텍스트)
+- Google IDs: GA4 (G-), UA, GTM, Google Ads (AW-), google-site-verification (meta tag)
+- Facebook/Meta Pixel ID (fbq init context)
+- reCAPTCHA site key (recaptcha context)
 - Telegram URL (t.me / telegram.me)
-- 한국 사업자등록번호 (컨텍스트 기반)
-- 한국 휴대폰 010 번호 (모드별: strict/loose/context_required)
+- Korean business registration number (context-based)
+- Korean mobile phone numbers starting with 010 (mode-based: strict/loose/context_required)
 
-전화번호 모드:
-- strict: 010-1234-5678 (하이픈 필수)
-- loose: 01012345678 / 010-1234-5678 / 010 1234 5678 (구분자 선택)
-- context_required: 'tel/phone/연락처/문의/☎' 등 키워드 근처에서만 추출(오진 최소)
+Phone number modes:
+- strict: 010-1234-5678 (hyphens required)
+- loose: 01012345678 / 010-1234-5678 / 010 1234 5678 (separator optional)
+- context_required: extract only when near keywords such as 'tel/phone/연락처/문의/☎'
+  to minimize false positives
 
-사용 예:
+Usage examples:
   python parse_regex.py --file sample.txt --pretty --phone-mode strict
   python parse_regex.py --file sample.txt --pretty --phone-mode context_required
   type sample.txt | python parse_regex.py --phone-mode loose
 
-출력: JSON (중복 제거 + 정렬)
+Output: JSON (deduplicated + sorted)
 """
 
 from __future__ import annotations
@@ -39,7 +40,7 @@ from typing import Dict, List, Set, Pattern, Iterable, Literal
 # Regex patterns (strict-ish)
 # ----------------------------
 
-# Email: 실무형(오진 낮추기 위해 TLD 최소 2자, 도메인 점 포함)
+# Email: practical pattern (TLD at least 2 characters, dot required in domain to reduce false positives)
 RE_EMAIL: Pattern = re.compile(
     r"""
     (?<![A-Za-z0-9._%+-])                           # left boundary
@@ -56,7 +57,7 @@ RE_UA: Pattern = re.compile(r"(?<![A-Z0-9])UA-\d{4,10}-\d{1,4}(?![A-Z0-9])")
 RE_GTM: Pattern = re.compile(r"(?<![A-Z0-9])GTM-[A-Z0-9]{6,8}(?![A-Z0-9])")
 RE_AW: Pattern = re.compile(r"(?<![A-Z0-9])AW-\d{6,12}(?![A-Z0-9])")
 
-# google-site-verification meta tag (태그 컨텍스트 포함)
+# google-site-verification meta tag (including tag context)
 RE_GOOGLE_SITE_VERIFICATION: Pattern = re.compile(
     r"""
     <meta\s+[^>]*name\s*=\s*["']google-site-verification["'][^>]*content\s*=\s*["']([^"']{10,})["'][^>]*>
@@ -64,7 +65,7 @@ RE_GOOGLE_SITE_VERIFICATION: Pattern = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
-# Telegram URL (URL 형태로만)
+# Telegram URL (URL format only)
 RE_TELEGRAM_URL: Pattern = re.compile(
     r"""
     (?:
@@ -76,7 +77,7 @@ RE_TELEGRAM_URL: Pattern = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
-# Facebook Pixel ID: fbq('init', '123...') 컨텍스트로만
+# Facebook Pixel ID: only when it appears in fbq('init', '123...') context
 RE_FB_PIXEL: Pattern = re.compile(
     r"""
     fbq\(\s*['"]init['"]\s*,\s*['"](\d{10,20})['"]\s*\)
@@ -84,7 +85,7 @@ RE_FB_PIXEL: Pattern = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
-# reCAPTCHA site key: recaptcha 컨텍스트 + key shape(대부분 6L로 시작)
+# reCAPTCHA site key: recaptcha context + key shape (most start with 6L)
 RE_RECAPTCHA_SITEKEY: Pattern = re.compile(
     r"""
     (?:
@@ -100,7 +101,7 @@ RE_RECAPTCHA_SITEKEY: Pattern = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
-# 한국 사업자등록번호: 컨텍스트 키워드 근처에서만
+# Korean business registration number: only when near context keywords
 RE_KR_BIZNO_CONTEXT: Pattern = re.compile(
     r"""
     (?:
@@ -112,11 +113,11 @@ RE_KR_BIZNO_CONTEXT: Pattern = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
-# 한국 휴대폰 010: 모드별 정규식
+# Korean mobile number starting with 010: mode-specific regex
 RE_KR_PHONE_STRICT: Pattern = re.compile(r"(?<!\d)(010-\d{4}-\d{4})(?!\d)")
 RE_KR_PHONE_LOOSE: Pattern = re.compile(r"(?<!\d)(010[- ]?\d{4}[- ]?\d{4})(?!\d)")
 
-# 컨텍스트 기반(키워드 근처 0~40자 안에 010 번호가 등장하는 경우만)
+# Context-based: only when a 010 number appears within 0–40 characters of a keyword
 RE_KR_PHONE_CONTEXT: Pattern = re.compile(
     r"""
     (?:
@@ -254,7 +255,7 @@ def as_dict(res: ExtractResult) -> Dict[str, List[str]]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--file", help="입력 파일 경로(없으면 stdin에서 읽음)")
+    ap.add_argument("--file", help="Input file path (reads from stdin if omitted)")
     ap.add_argument("--pretty", action="store_true", help="JSON pretty print")
     ap.add_argument(
         "--phone-mode",
