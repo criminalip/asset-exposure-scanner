@@ -103,17 +103,6 @@ Optional arguments:
 
 **Options**
 
-`--pretty`  
-Pretty-print JSON output.
-
-`--phone-mode`  
-Controls how Korean 010 mobile numbers are extracted.
-
-- `off` – do not extract phone numbers  
-- `strict` – extract only clearly structured numbers  
-- `loose` – extract broader matching patterns  
-- `context_required` – extract only when contextual indicators are present (recommended to reduce false positives)
-
 `--rawfile`  
 Use a saved raw JSON response instead of calling the Criminal IP API.
 
@@ -122,6 +111,10 @@ Specify the output JSON file.
 
 `--outdir`  
 Directory where output files will be stored (default: `out_privacy`).
+
+`--phone-mode`  
+Deprecated compatibility option retained for older integrations.
+It is currently passed through for compatibility and does not affect extraction behavior in the current implementation.
 
 ---
 
