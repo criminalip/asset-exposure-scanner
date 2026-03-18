@@ -40,32 +40,20 @@ Support: helpdesk@corp.co.kr
 </head>
 
 <body>
-  문의: 010-1234-5678
-  전화: 010 2345 6789
-  (이건 하이픈 없이) 01034567890
+  Telegram: https://t.me/CriminalIP_Official
+  Another Telegram: telegram.me/Some_User123
 
-  텔레그램: https://t.me/CriminalIP_Official
-  다른 텔레그램: telegram.me/Some_User123
+  Email in comment: dev.ops+alerts@security-company.io
 
-  사업자등록번호: 123-45-67890
-  Biz No: 234-56-78901
-
-  이메일(주석): dev.ops+alerts@security-company.io
-
-  아래는 @username 형태라서(서비스 불명) 텔레그램으로는 안 잡히는게 정상:
+  The following is only an @username format with no confirmed service context,
+  so it is expected not to be detected as Telegram:
   @not_sure_username
-
-  랜덤 숫자열(전화 오진 방지용): 010-9999-8888-7777 (이건 정상 번호 아님)
 </body>
 </html>
 """
 
-    # phone_mode별로 결과 비교
-    for mode in ["off", "strict", "loose", "context_required"]:
-        res = extract_all(sample_text, phone_mode=mode)
+        res = extract_all(sample_text)
         payload = as_dict(res)
-        print("\n" + "=" * 80)
-        print(f"phone_mode = {mode}")
         print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
