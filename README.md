@@ -100,6 +100,23 @@ Optional arguments:
 --out <file>
 --outdir <directory>
 ```
+---
+
+## Example Execution
+
+### 1. Project Structure
+![Project Structure](assets/run_1_structure.png)
+
+### 2. Sample Regex Extraction
+![Sample Execution](assets/run_2_sample.png)
+
+### 3. Privacy Exposure Check
+![Privacy Check](assets/run_3_execution.png)
+
+### 4. Output File
+![Output File](assets/run_4_output.png)
+
+---
 
 **Options**
 
@@ -115,6 +132,7 @@ Directory where output files will be stored (default: `out_privacy`).
 `--phone-mode`  
 Deprecated compatibility option retained for older integrations.
 It is currently passed through for compatibility and does not affect extraction behavior in the current implementation.
+
 
 ---
 
